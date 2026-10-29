@@ -1,0 +1,54 @@
+server:
+  port: ${PORT:8080}
+
+spring:
+  application:
+    name: api-gateway
+
+  cloud:
+    gateway:
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials
+
+      globalcors:
+        add-to-simple-url-handler-mapping: true
+        corsConfigurations:
+          "[/**]":
+            allowedOrigins:
+              - ${CORS_ORIGINS:http://localhost:5173}
+            allowedMethods: "*"
+            allowedHeaders: "*"
+            allowCredentials: true
+
+      routes:
+        - id: users-service
+          uri: ${USERS_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/users/**
+
+        - id: inventory-service
+          uri: ${INVENTORY_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/inventory/**
+
+jwt:
+  secret: ${JWT_SECRET:ReplaceThisVeryStrongSecretKeyDontCommit}
+  issuer: ${JWT_ISSUER:my-auth-server}
+  audiences:
+    - ${JWT_AUDIENCE:my-react-client}
+
+inventory:
+  service:
+    url: ${INVENTORY_SERVICE_URL:http://localhost:8082}
+
+user:
+  service:
+    url: ${USERS_SERVICE_URL:http://localhost:8081}
+
+sanidad:
+  service:
+    url: ${SANIDAD_SERVICE_URL:http://localhost:8083}
+
+reproduccion:
+  service:
+    url: ${REPRODUCTION_SERVICE_URL:http://localhost:8084}
