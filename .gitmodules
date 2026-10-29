@@ -1,0 +1,3 @@
+[submodule "services/sanidad"]
+	path = services/sanidad
+	url = https://github.com/CamiloLVZ/sanidad_ganado360
