@@ -1,0 +1,25 @@
+server:
+  port: ${PORT:8084}
+
+spring:
+  application:
+    name: reproduccion
+
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/reproducciondb?useSSL=false&serverTimezone=UTC}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:tioroger777}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: ${DDL_AUTO:update}
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+    show-sql: ${SHOW_SQL:true}
+
+logging:
+  level:
+    org.springframework: ${SPRING_LOG_LEVEL:INFO}
+    com.tuempresa: ${APP_LOG_LEVEL:DEBUG}
