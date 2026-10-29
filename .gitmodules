@@ -4,3 +4,6 @@
 [submodule "frontend/ganadofront"]
 	path = frontend/ganadofront
 	url = https://github.com/MatGM07/ganadofront
+[submodule "gateway/gatewayganado"]
+	path = gateway/gatewayganado
+	url = https://github.com/MatGM07/gatewayganado
