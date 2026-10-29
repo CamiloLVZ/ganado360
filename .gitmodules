@@ -7,3 +7,12 @@
 [submodule "gateway/gatewayganado"]
 	path = gateway/gatewayganado
 	url = https://github.com/MatGM07/gatewayganado
+[submodule "services/users"]
+	path = services/users
+	url = https://github.com/MatGM07/ganadousers
+[submodule "services/inventory"]
+	path = services/inventory
+	url = https://github.com/MatGM07/ganadoinventory
+[submodule "services/reproduccion"]
+	path = services/reproduccion
+	url = https://github.com/MatGM07/ganadoreproduccion
