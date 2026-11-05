@@ -1,0 +1,181 @@
+services:
+  # -------------------- Base de datos --------------------
+  mysql:
+    image: mysql:8.0
+    container_name: ganado360-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "root",
+          "-p${MYSQL_ROOT_PASSWORD}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - ganado-net
+
+  # -------------------- Microservicio: Usuarios --------------------
+  ganadousers:
+    build: ./ganadousers
+    container_name: ganado360-users
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      PORT: 8081
+      DB_URL: jdbc:mysql://mysql:3306/usersdb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      MAIL_HOST: ${MAIL_HOST}
+      MAIL_PORT: ${MAIL_PORT}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      INTERNAL_GATEWAY_SECRET: ${INTERNAL_GATEWAY_SECRET}
+      GATEWAY_SECURITY_ENABLED: ${GATEWAY_SECURITY_ENABLED}
+      GATEWAY_URL: http://gatewayganado:8080
+      DDL_AUTO: ${DDL_AUTO}
+      SHOW_SQL: ${SHOW_SQL}
+      SPRING_LOG_LEVEL: ${SPRING_LOG_LEVEL}
+      APP_LOG_LEVEL: ${APP_LOG_LEVEL}
+    ports:
+      - "8081:8081"
+    networks:
+      - ganado-net
+
+  # -------------------- Microservicio: Inventario --------------------
+  ganadoinventory:
+    build: ./ganadoinventory
+    container_name: ganado360-inventory
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      PORT: 8082
+      DB_URL: jdbc:mysql://mysql:3306/inventorydb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      INTERNAL_GATEWAY_SECRET: ${INTERNAL_GATEWAY_SECRET}
+      GATEWAY_SECURITY_ENABLED: ${GATEWAY_SECURITY_ENABLED}
+      DDL_AUTO: ${DDL_AUTO}
+      SHOW_SQL: ${SHOW_SQL}
+      SPRING_LOG_LEVEL: ${SPRING_LOG_LEVEL}
+      APP_LOG_LEVEL: ${APP_LOG_LEVEL}
+    ports:
+      - "8082:8082"
+    networks:
+      - ganado-net
+
+  # -------------------- Microservicio: Sanidad --------------------
+  ganadosanidad:
+    build: ./ganadosanidad
+    container_name: ganado360-sanidad
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      PORT: 8083
+      DB_URL: jdbc:mysql://mysql:3306/db_sanidad?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      INTERNAL_GATEWAY_SECRET: ${INTERNAL_GATEWAY_SECRET}
+      GATEWAY_SECURITY_ENABLED: ${GATEWAY_SECURITY_ENABLED}
+      DDL_AUTO: ${DDL_AUTO}
+      SHOW_SQL: ${SHOW_SQL}
+      SPRING_LOG_LEVEL: ${SPRING_LOG_LEVEL}
+      APP_LOG_LEVEL: ${APP_LOG_LEVEL}
+    ports:
+      - "8083:8083"
+    networks:
+      - ganado-net
+
+  # -------------------- Microservicio: Reproducción --------------------
+  ganadoreproduccion:
+    build: ./ganadoreproduccion
+    container_name: ganado360-reproduccion
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      PORT: 8084
+      DB_URL: jdbc:mysql://mysql:3306/reproducciondb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      INTERNAL_GATEWAY_SECRET: ${INTERNAL_GATEWAY_SECRET}
+      GATEWAY_SECURITY_ENABLED: ${GATEWAY_SECURITY_ENABLED}
+      DDL_AUTO: ${DDL_AUTO}
+      SHOW_SQL: ${SHOW_SQL}
+      SPRING_LOG_LEVEL: ${SPRING_LOG_LEVEL}
+      APP_LOG_LEVEL: ${APP_LOG_LEVEL}
+    ports:
+      - "8084:8084"
+    networks:
+      - ganado-net
+
+  # -------------------- API Gateway --------------------
+  gatewayganado:
+    build: ./gatewayganado
+    container_name: ganado360-gateway
+    restart: unless-stopped
+    depends_on:
+      - ganadousers
+      - ganadoinventory
+      - ganadosanidad
+      - ganadoreproduccion
+    environment:
+      PORT: 8080
+      USERS_SERVICE_URL: http://ganadousers:8081
+      INVENTORY_SERVICE_URL: http://ganadoinventory:8082
+      SANIDAD_SERVICE_URL: http://ganadosanidad:8083
+      REPRODUCTION_SERVICE_URL: http://ganadoreproduccion:8084
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ISSUER: ${JWT_ISSUER}
+      JWT_AUDIENCE: ${JWT_AUDIENCE}
+      INTERNAL_GATEWAY_SECRET: ${INTERNAL_GATEWAY_SECRET}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+    ports:
+      - "8080:8080"
+    networks:
+      - ganado-net
+
+  # -------------------- Frontend React --------------------
+  ganadofront:
+    build:
+      context: ./ganadofront
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8080}
+    container_name: ganado360-front
+    restart: unless-stopped
+    depends_on:
+      - gatewayganado
+    ports:
+      - "80:80"
+    networks:
+      - ganado-net
+
+volumes:
+  mysql-data:
+    driver: local
+
+networks:
+  ganado-net:
+    driver: bridge

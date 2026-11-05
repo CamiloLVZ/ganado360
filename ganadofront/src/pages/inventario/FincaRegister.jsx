@@ -1,0 +1,206 @@
+import { MapPin, Home, Map } from 'lucide-react';
+import React, { useState } from 'react';
+import Header from '../../components/Header';
+import colombia from "../../data/colombia.json";
+import { useAuth } from "../../hooks/useAuth";
+import { apiPost } from "../../api/api";
+
+
+const departments = colombia.map(d => d.departamento);
+
+
+const cities = (departamento) => {
+  const dep = colombia.find(d => d.departamento === departamento);
+  return dep ? dep.ciudades : [];
+};
+
+function FincaRegister() {
+  const [nombreFinca, setNombreFinca] = useState('');
+  const [dept, setDept] = useState('');
+  const [municipio, setMunicipio] = useState('');
+  const [municipiosFiltrados, setMunicipiosFiltrados] = useState([]);
+
+  const handleDepartamento = (e) => {
+    const selectedDept = e.target.value;
+    setDept(selectedDept);
+    setMunicipio('');
+    setMunicipiosFiltrados(cities(selectedDept)); // <- AQUÍ EL FIX
+    };
+
+
+  const { user } = useAuth(); // <-- UUID DEL USUARIO LOGUEADO
+
+  const handleSubmit = async () => {
+    try {
+      if (!user || !user.id) {
+        alert("No se pudo obtener el usuario actual.");
+        return;
+      }
+
+      const fincaData = {
+        nombre: nombreFinca,
+        departamento: dept,
+        municipio: municipio,
+        usuarioCreadorId: user.id,      // UUID
+        miembrosIds: [user.id]          // el creador también queda como miembro
+      };
+
+      console.log("Enviando finca:", fincaData);
+
+      const response = await apiPost("/api/inventory/fincas", fincaData);
+      console.log(response)
+
+      alert("Finca creada exitosamente");
+
+      // Opcional: limpiar formulario
+      setNombreFinca("");
+      setDept("");
+      setMunicipio("");
+      setMunicipiosFiltrados([]);
+
+      // Si deseas navegar a otra pantalla:
+      // navigate("/dashboard");
+
+    } catch (err) {
+      console.error(err);
+      alert("Error al crear la finca: " + err.message);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-white">
+      <Header />
+      
+      <div className="flex items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
+        <div className="w-full max-w-md">
+          {/* Card del formulario */}
+          <div className="bg-white rounded-2xl shadow-xl p-8 space-y-8">
+            {/* Logo y título */}
+            <div className="text-center">
+              <div className="flex justify-center mb-4">
+                <div className="bg-gradient-to-br from-green-500 to-green-600 p-4 rounded-2xl shadow-lg">
+                  <MapPin className="w-12 h-12 text-white" />
+                </div>
+              </div>
+              <h2 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-green-700 bg-clip-text text-transparent">
+                Nueva Finca
+              </h2>
+              <p className="mt-2 text-gray-600">
+                Registra una nueva finca en Ganado360
+              </p>
+            </div>
+
+            {/* Formulario */}
+            <div className="space-y-6">
+              {/* Campo Nombre de Finca */}
+              <div>
+                <label htmlFor="nombreFinca" className="block text-sm font-medium text-gray-700 mb-2">
+                  Nombre de la Finca
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Home className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    id="nombreFinca"
+                    name="nombreFinca"
+                    type="text"
+                    value={nombreFinca}
+                    onChange={(e) => setNombreFinca(e.target.value)}
+                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all outline-none"
+                    placeholder="Ej: Finca El Roble"
+                  />
+                </div>
+              </div>
+
+              {/* Campo Departamento */}
+              <div>
+                <label htmlFor="departamento" className="block text-sm font-medium text-gray-700 mb-2">
+                  Departamento
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Map className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <select
+                    id="departamento"
+                    name="departamento"
+                    value={dept}
+                    onChange={handleDepartamento}
+                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all outline-none appearance-none bg-white cursor-pointer"
+                  >
+                    <option value="">Seleccione un departamento...</option>
+                    {departments.map((d) => (
+                      <option key={d} value={d}>
+                        {d}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Campo Municipio */}
+              <div>
+                <label htmlFor="municipio" className="block text-sm font-medium text-gray-700 mb-2">
+                  Municipio
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <MapPin className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <select
+                    id="municipio"
+                    name="municipio"
+                    disabled={!dept}
+                    value={municipio}
+                    onChange={(e) => setMunicipio(e.target.value)}
+                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all outline-none appearance-none bg-white cursor-pointer disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  >
+                    <option value="">Seleccione un municipio...</option>
+                    {municipiosFiltrados.map((m) => (
+                    <option key={m} value={m}>
+                        {m}
+                    </option>
+                    ))}
+                  </select>
+                </div>
+                {!dept && (
+                  <p className="mt-2 text-sm text-gray-500">
+                    Primero selecciona un departamento
+                  </p>
+                )}
+              </div>
+
+              {/* Botones */}
+              <div className="space-y-3 pt-4">
+                <button
+                  onClick={handleSubmit}
+                  disabled={!nombreFinca || !dept || !municipio}
+                  className="w-full flex justify-center items-center space-x-2 py-3 px-4 border border-transparent rounded-lg shadow-md text-white bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200 font-medium text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span>Crear Finca</span>
+                </button>
+
+                <button
+                  onClick={() => window.history.back()}
+                  className="w-full flex justify-center items-center space-x-2 py-3 px-4 border border-gray-300 rounded-lg shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200 font-medium"
+                >
+                  <span>Volver</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Información adicional */}
+          <div className="mt-8 text-center">
+            <p className="text-sm text-gray-500">
+              Los datos de la finca se pueden editar más adelante
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default FincaRegister;
