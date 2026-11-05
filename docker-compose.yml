@@ -1,7 +1,7 @@
 services:
   # -------------------- Base de datos --------------------
   mysql:
-    image: mysql:8.0
+    image: mysql/mysql-server:8.0
     container_name: ganado360-mysql
     restart: unless-stopped
     environment:
