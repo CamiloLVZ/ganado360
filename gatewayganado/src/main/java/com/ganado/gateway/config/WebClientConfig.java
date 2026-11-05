@@ -21,10 +21,12 @@ public class WebClientConfig {
                             .header("X-Internal-Gateway-Token", internalSecret);
 
                     if (ctx.hasKey("authUserId")) {
-                        builder.header("X-Auth-User-Id", ctx.get("authUserId"));
+                        String userId = ctx.get("authUserId");
+                        builder.header("X-Auth-User-Id", userId);
                     }
                     if (ctx.hasKey("authUserEmail")) {
-                        builder.header("X-Auth-User-Email", ctx.get("authUserEmail"));
+                        String userEmail = ctx.get("authUserEmail");
+                        builder.header("X-Auth-User-Email", userEmail);
                     }
 
                     return next.exchange(builder.build());

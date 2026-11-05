@@ -37,7 +37,7 @@ public class JwtAuthenticationFilter implements WebFilter, Ordered {
 
     public JwtAuthenticationFilter(
             JwtService jwtService,
-            @Value("${CORS_ORIGINS:http://localhost:5173}") String corsOrigins
+            @Value("${CORS_ORIGINS:http://localhost:5173,http://localhost}") String corsOrigins
     ) {
         this.jwtService = jwtService;
         this.corsOrigins = corsOrigins;
@@ -48,11 +48,9 @@ public class JwtAuthenticationFilter implements WebFilter, Ordered {
         ServerHttpRequest request = exchange.getRequest();
         String path = request.getURI().getPath();
 
+        // 1) Preflight OPTIONS delegados a CorsWebFilter
         if ("OPTIONS".equalsIgnoreCase(request.getMethod().name())) {
-            ServerHttpResponse response = exchange.getResponse();
-            addCorsHeaders(response);
-            response.setStatusCode(HttpStatus.OK);
-            return response.setComplete();
+            return chain.filter(exchange);
         }
 
         // 2) RUTAS PÚBLICAS
@@ -110,16 +108,19 @@ public class JwtAuthenticationFilter implements WebFilter, Ordered {
     // MÉTODOS AUXILIARES
     // -----------------------------
 
-    private void addCorsHeaders(ServerHttpResponse response) {
-        response.getHeaders().add("Access-Control-Allow-Origin", corsOrigins);
-        response.getHeaders().add("Access-Control-Allow-Credentials", "true");
-        response.getHeaders().add("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Auth-User-Id, X-Auth-User-Email");
-        response.getHeaders().add("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+    private void addCorsHeaders(ServerHttpRequest request, ServerHttpResponse response) {
+        String origin = request.getHeaders().getOrigin();
+        if (origin != null && !origin.isBlank()) {
+            response.getHeaders().set("Access-Control-Allow-Origin", origin);
+            response.getHeaders().set("Access-Control-Allow-Credentials", "true");
+            response.getHeaders().set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Auth-User-Id, X-Auth-User-Email");
+            response.getHeaders().set("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+        }
     }
 
     private Mono<Void> unauthorized(ServerWebExchange exchange, String message) {
         ServerHttpResponse response = exchange.getResponse();
-        addCorsHeaders(response);
+        addCorsHeaders(exchange.getRequest(), response);
         response.setStatusCode(HttpStatus.UNAUTHORIZED);
 
         byte[] bytes = String.format("{\"error\": \"%s\"}", message).getBytes(StandardCharsets.UTF_8);
